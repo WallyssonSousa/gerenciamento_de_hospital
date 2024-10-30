@@ -26,4 +26,5 @@ class Paciente(Base):
     naciolidade = Column(String(15), nullable=False)
 
     
+    #oi
     
