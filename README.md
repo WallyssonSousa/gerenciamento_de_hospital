@@ -1,5 +1,3 @@
-# gerenciamento_de_hospital
+![alt text](https://www.impacta.edu.br/themes/wc_agenciar3/images/logo-new.png)
 
-# projeto para a AP2 de programação orientada a objetos 
-
-# Faculdade Impacta
+### Gerenciamento de Hospital
