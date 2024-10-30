@@ -3,6 +3,7 @@
 ### Gerenciamento de Hospital
 
 <div class="pipInstall">
+    <h2>Dependencias para instalar</h2>
     <ul>
         <li>pip install sqlalchemy</li>
     </ul>   
