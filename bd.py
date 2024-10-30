@@ -1,17 +1,21 @@
-from sqlalchemy import create_engine, Column, Integer, String, Date
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-url_database = "sqlite:///gerenciador_hospital.db"
+from sqlalchemy import create_engine, Column, String, Integer, Boolean, ForeignKey, DateTime
+from sqlalchemy.orm import sessionmaker, declarative_base
 
+db = create_engine("sqlite:///bancoteste.db")
+Session = sessionmaker(bind=db)
+session = Session()
 
 Base = declarative_base()
 
-engine = create_engine(url_database, echo=True)
+#Tabelas
 
+#============================PROONTUARIO==============================================
 class Prontuario(Base):
-    __tabelename__ = 'Prontuario'
+    __tablename__ = "prontuario"
 
-    numero_prontuario = Column(Integer, primary_key=True, nullable=False)
+    id = Column("id", Integer, primary_key=True, autoincrement=True)
+#======================================================================================
+
 
 class Paciente(Base): 
     __tablename__ = 'Paciente'
@@ -25,4 +29,6 @@ class Paciente(Base):
     endereco = Column(String(50), nullable=False)
     naciolidade = Column(String(15), nullable=False)
 
-        
+    
+    #oi
+    
