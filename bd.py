@@ -1,30 +1,104 @@
-from sqlalchemy import create_engine, Column, Integer, String, Date
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-url_database = "sqlite:///gerenciador_hospital.db"
+from sqlalchemy import create_engine, Column, String, Integer, Boolean, ForeignKey, DateTime
+from sqlalchemy.orm import sessionmaker, declarative_base
 
+db = create_engine("sqlite:///bancoteste.db")
+Session = sessionmaker(bind=db)
+session = Session()
 
 Base = declarative_base()
 
-engine = create_engine(url_database, echo=True)
+#Tabelas
 
+#============================PROONTUARIO==============================================
 class Prontuario(Base):
-    __tabelename__ = 'Prontuario'
+    __tablename__ = "prontuario"
 
-    numero_prontuario = Column(Integer, primary_key=True, nullable=False)
+    id = Column("id", Integer, primary_key=True, autoincrement=True)
+#======================================================================================
 
-class Paciente(Base): 
-    __tablename__ = 'Paciente'
-    
-    cpf = Column(String(14), primary_key=True, nullable=False)
-    nome_paciente = Column(String(45), nullable=False)
-    data_nascimento = Column(Date, nullable=False)
-    email = Column(String(50), nullable=False)
-    telefone = Column(String(14), nullable=False)
-    sexo = Column(String(10), nullable=False)
-    endereco = Column(String(50), nullable=False)
-    naciolidade = Column(String(15), nullable=False)
 
-    
-    #oi
-    
+#==============================PACIENTES===============================================
+class Paciente(Base):
+    __tablename__ = "paciente"
+
+    id           = Column("id", Integer, primary_key=True, autoincrement=True)
+    cpf          = Column()
+    nome         = Column()
+    data_nasc    = Column()
+    email        = Column()
+    telefone     = Column()
+    sexo         = Column()
+    endereço     = Column()
+    naturalidade = Column()
+    prontuario   = Column()
+
+#======================================================================================
+
+#======================================MEDICOS=========================================
+class Medico(Base):
+    __tablename__ = "medico"
+
+    id              = Column("id", Integer, primary_key=True, autoincrement=True)
+    crm             = Column()
+    nome            = Column()
+    especialidade   = Column()
+
+#=======================================================================================
+
+#====================================CONSULTA===========================================
+class Consulta(Base):
+    __tablename__= "consulta"
+
+    id              = Column("id", Integer, primary_key=True, autoincrement=True)
+    data_hora       = Column()
+    status          = Column()
+    paciente_cpf    = Column()
+    medico_crm      = Column()
+
+#====================================DIAGNOSTICO=========================================
+class Diagnostico(Base):
+    __tablename__ = "diagnostico"
+
+    id              = Column("id", Integer, primary_key=True, autoincrement=True)
+    cid             = Column()
+    descrição       = Column()
+    consulta_id     = Column()
+    paciente_cpf    = Column()
+    medico_crm      = Column()
+#==========================================================================================
+
+#=====================================TRATAMENTO============================================
+class Tratamento(Base):
+    __tablename__ = "tratamento"
+
+    id              = Column("id", Integer, primary_key=True, autoincrement=True)
+    descrição       = Column()
+    duração         = Column()
+    medicamentos    = Column()
+    diagnostico     = Column()
+#=========================================================================================
+
+#=====================================RECEITA=============================================
+class Receita(Base):
+    __tabelname__ = "receita"
+
+    id = Column("id", Integer, primary_key=True, autoincrement=True)
+    nome_medico
+#========================================================================================
+Base.metadata.create_all(bind=db)
+
+#CRUD
+
+paciente = Paciente(cpf="19350048756", nome="Carlos", data_nasc="11/08/2000", email="carlos@gmail.com", telefone="11985647526", sexo="M", enedereço="Rua 9", naturalidade="Brasileiro")
+session.add(paciente)
+session.commit()
+
+#READ
+""" lista_paciente = session.query(Paciente).all()
+print(lista_paciente) """
+paciente_carlos = session.query(Paciente).filter_by(nome="Carlos").first()
+print(paciente_carlos)
+print(paciente_carlos.nome)
+print(paciente_carlos.cpf)
+print(paciente_carlos.sexo)
+print(paciente_carlos.naturalidade)
