@@ -25,6 +25,4 @@ class Paciente(Base):
     endereco = Column(String(50), nullable=False)
     naciolidade = Column(String(15), nullable=False)
 
-    
-    #oi
-    
+        
