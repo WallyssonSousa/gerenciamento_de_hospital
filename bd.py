@@ -6,7 +6,7 @@ url_database = "sqlite:///gerenciador_hospital.db"
 
 Base = declarative_base()
 
-""" teu cu é meu """
+""" teu cu é meus """
 engine = create_engine(url_database, echo=True)
 
 class Prontuario(Base):
