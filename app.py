@@ -24,14 +24,18 @@ class Usuario(Base):
     def verificar_senha(senha, senha_hash): 
         return bcrypt.checkpw(senha.encode('utf-8'), senha_hash.encode('utf-8'))
 
+# Tabelas
+#===================================================================================================
 
 class Prontuario(Base):
-    __tablename__ = 'prontuario'
+    __tablename__ = "prontuario"
+    id = Column("id", Integer, primary_key=True, autoincrement=True, nullable=False)
 
-    numero_prontuario = Column(Integer, primary_key=True, nullable=False)
-
+#=================================================================================================
 class Paciente(Base): 
     __tablename__ = 'paciente'
+
+    consultas = relationship("Consulta", back_populates="paciente")
     
     cpf = Column(String(14), primary_key=True, nullable=False)
     numero_prontuario_id = Column(Integer, ForeignKey('prontuario.numero_prontuario'), nullable=False)
@@ -49,8 +53,12 @@ class Paciente(Base):
         consultas = session.query(Consulta).filter(Consulta.paciente_cpf == self.cpf).all()
         return [consulta.visualizar_consulta(session) for consulta in consultas]
 
+#================================================================================================
+
 class Medico(Base):
     __tablename__ = "medico"
+
+    consultas = relationship("Consulta", back_populates="medico")
 
     crm = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     nome_medico = Column(String(45), nullable=False)
@@ -67,9 +75,14 @@ class Medico(Base):
             "nome": self.nome_medico,
             "especialidade": self.especialidade
         }
+    
+#================================================================================================
 
 class Consulta(Base):
     __tablename__= "consulta"
+
+    medico      = relationship("Medico", back_populates="consultas")
+    paciente    = relationship("Paciente", back_populates="consultas")
 
     id_consulta = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     data_hora = Column(DateTime, nullable=False)
@@ -122,9 +135,12 @@ class Consulta(Base):
         session.add(self)
         session.commit()
 
+#================================================================================================
 
 class Diagnostico(Base):
     __tablename__ = "diagnostico"
+
+    consulta = relationship("Consulta", back_populates="diagnosticos")
 
     id_diagnostico = Column(Integer, primary_key=True, autoincrement=True)
     cid = Column(String(7), nullable=False)
@@ -143,6 +159,8 @@ class Diagnostico(Base):
         paciente.prontuario = self
         print(f"Diagnóstico adicionado ao prontuário de {paciente.nome_paciente}.")
 
+#================================================================================================
+
 class Tratamento(Base):
     __tablename__ = "tratamento"
 
@@ -159,12 +177,18 @@ class Tratamento(Base):
         session.commit()
         print(f"Tratamento adicionado ao prontuário de {paciente.nome_paciente}.")
 
+#================================================================================================
+
 class Receita(Base):
     __tablename__ = "receita"
 
     id_receita = Column(Integer, primary_key=True, autoincrement=True)
+    crm_medico = Column(Integer, ForeignKey('medico.crm'), nullable=False)
     nome_medico = Column(String(45), ForeignKey('medico.nome_medico'), nullable=False)
+    cpf_paciente = Column(String(14), ForeignKey('paciente.cpf'), nullable=False)
     nome_paciente = Column(String(45), ForeignKey('paciente.nome_paciente'), nullable=False)
+    id_diagnostico = Column(Integer, ForeignKey('diagnostico.id_diagnostico'), nullable=True)
+    id_tratamento = Column(Integer, ForeignKey('tratamento.id_tratamento'), nullable=True)
     descricao = Column(String(256), nullable=False)
 
     def adicionar_ao_prontuario(self, session, paciente):
@@ -172,6 +196,7 @@ class Receita(Base):
         session.commit()
         print(f"Receita adicionado ao prontuário de {paciente.nome_paciente}.")
 
+#================================================================================================
     
 Base.metadata.create_all(bind=db)
 
