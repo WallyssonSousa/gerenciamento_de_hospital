@@ -24,6 +24,26 @@ class Usuario(Base):
     def verificar_senha(senha, senha_hash): 
         return bcrypt.checkpw(senha.encode('utf-8'), senha_hash.encode('utf-8'))
 
+
+def login_paciente(cpf, senha, session):
+    paciente = session.query(Paciente).filter(Paciente.cpf == cpf).first()
+    if paciente and Usuario.verificar_senha(senha, paciente.senha_hash): 
+        print(f"Bem vindo, {paciente.nome_paciente}")
+        return paciente
+    else:
+        print("CPF ou senha inválidos")
+        return None
+    
+def login_medico(crm, senha, session):
+    medico = session.query(Medico).filter(Medico.crm == crm).first()
+    if medico and Usuario.verificar_senha(senha, medico.senha_hash):
+        print(f"Bem vindo, Dr(a). {medico.nome_medico}")
+        return medico
+    else: 
+        print("CRM ou senha inválidos.")
+        return None
+
+
 # Tabelas
 #===================================================================================================
 
@@ -53,6 +73,12 @@ class Paciente(Base):
         consultas = session.query(Consulta).filter(Consulta.paciente_cpf == self.cpf).all()
         return [consulta.visualizar_consulta(session) for consulta in consultas]
 
+    def cancelar_consulta(self, consulta_id, session):
+        consulta = session.query(Consulta).filter(Consulta.id_consulta == consulta_id, Consulta.paciente_cpf == self.cpf).first()
+        if consulta: 
+            consulta.cancelar_consulta_agendada(session)
+        else: 
+            print("Consulta não encontrada ou não pertece a este paciente")
 #================================================================================================
 
 class Medico(Base):
@@ -64,18 +90,27 @@ class Medico(Base):
     nome_medico = Column(String(45), nullable=False)
     especialidade = Column(String(25), nullable=False)
 
-    def cadastro(self, session):
-        session.add(self)
-        session.commit()
-        print(f"Médico {self.nome_medico}")
 
-    def visualizar(self):
-        return {
-            "crm": self.crm,
-            "nome": self.nome_medico,
-            "especialidade": self.especialidade
-        }
+    def visualizr_consultas(self, session): 
+        consultas = session.query(Consulta).filter(Consulta.medico_crm == self.crm).all()
+        return [consulta.visualizar_consulta(session) for consulta in consultas]
     
+    def editar_consulta(self, consulta_id, novos_dados, session):
+        consulta = session.query(Consulta).filter(Consulta.id_consulta == consulta_id).first()
+        if consulta: 
+            for key, value in novos_dados.items():
+                setattr(consulta, key, value)
+            session.commit()
+        else: 
+            print("Consulta não encontrada.")
+
+    def cancelar_consulta(self, consulta_id, session):
+        consulta = session.query(Consulta).filter(Consulta.id_consulta == consulta_id).first()
+        if consulta: 
+            consulta.cancelar_consulta_agendada(session)
+        else:
+            print("Consulta não encontrada.")
+
 #================================================================================================
 
 class Consulta(Base):
@@ -92,8 +127,6 @@ class Consulta(Base):
 
     paciente = relationship("Paciente")
     medico = relationship("Medico")
-
-
 
     def agendar_consulta_paciente(self, session, paciente_cpf, medico_crm, data_hora, status="Agendada"):
         consulta_agendada = Consulta(
