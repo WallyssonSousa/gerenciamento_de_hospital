@@ -6,5 +6,6 @@
     <h2>Dependencias para instalar</h2>
     <ul>
         <li>pip install sqlalchemy</li>
+        <li>pip install bcrypt</li>
     </ul>   
 </div>
