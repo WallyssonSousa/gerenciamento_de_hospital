@@ -2,6 +2,7 @@ from sqlalchemy import create_engine, Column, String, Integer, ForeignKey, Date,
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 import bcrypt 
+from datetime import datetime
 
 db = create_engine("sqlite:///bancoteste.db")
 Session = sessionmaker(bind=db)
@@ -49,7 +50,7 @@ def login_medico(crm, senha, session):
 
 class Prontuario(Base):
     __tablename__ = "prontuario"
-    id = Column("id", Integer, primary_key=True, autoincrement=True, nullable=False)
+    numero_prontuario = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
 
 #=================================================================================================
 class Paciente(Base): 
@@ -241,18 +242,111 @@ class Receita(Base):
     
 Base.metadata.create_all(bind=db)
 
-#CRUD
 
-paciente = Paciente(cpf="19350048756", nome="Carlos", data_nasc="11/08/2000", email="carlos@gmail.com", telefone="11985647526", sexo="M", enedereço="Rua 9", naturalidade="Brasileiro")
+
+
+
+# Criar um novo paciente
+novo_paciente = Paciente(
+    cpf="12345678900",
+    numero_prontuario_id=1,  # Assumindo que já existe um prontuário com ID 1
+    nome_paciente="João Silva",
+    data_nascimento=datetime(1990, 1, 1),  # Data de nascimento
+    email="joao.silva@example.com",
+    telefone="123456789",
+    sexo="Masculino",
+    endereco="Rua Exemplo, 123",
+    nacionalidade="Brasileiro"
+)
+
+# Adicionar o paciente ao banco de dados
+session.add(novo_paciente)
+session.commit()
+print("Paciente adicionado com sucesso!")
+
+paciente_buscado = session.query(Paciente).filter(Paciente.cpf == "12345678900").first()
+
+if paciente_buscado:
+    print(f"Nome: {paciente_buscado.nome_paciente}")
+    print(f"CPF: {paciente_buscado.cpf}")
+    print(f"Data de Nascimento: {paciente_buscado.data_nascimento}")
+    print(f"E-mail: {paciente_buscado.email}")
+    print(f"Telefone: {paciente_buscado.telefone}")
+    print(f"Sexo: {paciente_buscado.sexo}")
+    print(f"Endereço: {paciente_buscado.endereco}")
+    print(f"Nacionalidade: {paciente_buscado.nacionalidade}")
+else:
+    print("Paciente não encontrado.")
+
+
+
+
+
+
+
+
+
+
+
+
+""" 
+# Adicionando um usuário
+nova_senha = Usuario.hash_senha("senha_do_usuario")
+usuario = Usuario(senha_hash=nova_senha)
+session.add(usuario)
+session.commit()
+print("Usuário adicionado com sucesso.")
+
+# Adicionando um paciente
+paciente = Paciente(
+    cpf="12345678901",
+    numero_prontuario_id=1,
+    nome_paciente="João Silva",
+    data_nascimento="1990-01-01",
+    email="joao@example.com",
+    telefone="123456789",
+    sexo="Masculino",
+    endereco="Rua A, 123",
+    nacionalidade="Brasileiro"
+)
 session.add(paciente)
 session.commit()
+print("Paciente adicionado com sucesso.")
 
-#READ
-""" lista_paciente = session.query(Paciente).all()
-print(lista_paciente) """
-paciente_carlos = session.query(Paciente).filter_by(nome="Carlos").first()
-print(paciente_carlos)
-print(paciente_carlos.nome)
-print(paciente_carlos.cpf)
-print(paciente_carlos.sexo)
-print(paciente_carlos.naturalidade)
+# Adicionando um médico
+medico = Medico(
+    crm=123456,
+    nome_medico="Dr. Carlos",
+    especialidade="Cardiologia"
+)
+session.add(medico)
+session.commit()
+print("Médico adicionado com sucesso.")
+
+# Testando login do paciente
+cpf = "12345678901"
+senha = "senha_do_usuario"  # A senha deve ser a mesma usada para o hash
+paciente_login = login_paciente(cpf, senha, session)
+if paciente_login:
+    print(f"Login bem-sucedido para {paciente_login.nome_paciente}.")
+else:
+    print("Login falhou.")
+
+# Agendando uma consulta
+data_hora = "2024-10-30 10:00:00"
+consulta = Consulta()
+consulta.agendar_consulta_paciente(session, "12345678901", 123456, data_hora)
+print("Consulta agendada com sucesso.")
+
+# Visualizando consultas do paciente
+consultas = paciente.visualizar_consulta(session)
+for consulta in consultas:
+    print(f"Consulta ID: {consulta.id_consulta}, Data: {consulta.data_hora}, Status: {consulta.status}")
+
+# Cancelando uma consulta
+consulta_id = 1  # Supondo que a consulta ID 1 exista
+paciente.cancelar_consulta(consulta_id, session)
+print("Consulta cancelada com sucesso.")
+
+# Fechar a sessão
+session.close() """
