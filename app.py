@@ -2,6 +2,8 @@ from sqlalchemy import create_engine, Column, String, Integer, ForeignKey, Date,
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 from datetime import datetime
+import menu_medico
+import menu_paciente
 
 db = create_engine("sqlite:///sistemasaude.db")   
 Session = sessionmaker(bind=db)
@@ -11,13 +13,14 @@ Base = declarative_base()
 
 
 # Tabelas
-#===================================================================================================
+#===================================Prontuario====================================================
 
 class Prontuario(Base):
     __tablename__ = "prontuario"
     numero_prontuario = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
 
-#=================================================================================================
+#===================================Paciente===============================================
+
 class Paciente(Base):
     __tablename__ = 'paciente'
 
@@ -93,19 +96,52 @@ class Paciente(Base):
             consulta.cancelar_consulta_agendada(session)
         else: 
             print("Consulta não encontrada ou não pertece a este paciente")  
+
+#============================ Médico ============================ #
             
 class Medico(Base):
     __tablename__ = "medico"
-
-    consultas = relationship("Consulta", back_populates="medico")
 
     crm = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     nome_medico = Column(String(45), nullable=False)
     especialidade = Column(String(25), nullable=False)
     senha = Column(String(8), nullable=False)
 
+    @classmethod
+    def adicionar_medico(cls, session, crm, nome_medico, especialidade, senha):
+        novo_medico = cls(
+            crm=crm,
+            nome_medico=nome_medico,
+            especialidade=especialidade,
+            senha=senha
+        )
+        session.add(novo_medico)
+        session.commit()
+        return novo_medico
+    
+    @classmethod
+    def visualizar_todos_pacientes(cls, session):
+        pacientes = session.query(Paciente).all()
+        print("\n Relatório  de Pacientes \n" + "="*50)
+        for paciente in pacientes:
+            print(f"Nome: {paciente.nome_paciente}")
+            print(f"CPF: {paciente.cpf}")
+            print(f"Data de Nascimento: {paciente.data_nascimento}")
+            print(f"Telefone: {paciente.telefone}")
+            print(f"Sexo: {paciente.sexo}")
+            print(f"Endereço: {paciente.endereco}")
+            print(f"Nacionalidade: {paciente.nacionalidade}")
+            print("="*50)
 
-    def visualizar_consulta(self, session): 
+
+
+    """
+                                        Comentado por não está pronto para uso
+                                        Se for utilizar, relacionar com a tabela consulta
+
+        consultas = relationship("Consulta", back_populates="medico")
+
+     def visualizar_consulta(self, session): 
         consultas = session.query(Consulta).filter(Consulta.medico_crm == self.crm).all()
         return [consulta.visualizar_consulta(session) for consulta in consultas]
     
@@ -123,9 +159,9 @@ class Medico(Base):
         if consulta: 
             consulta.cancelar_consulta_agendada(session)
         else:
-            print("Consulta não encontrada.")
+            print("Consulta não encontrada.") """
 
-#================================================================================================
+#=====================================Consulta=================================================
 
 class Consulta(Base):
     __tablename__= "consulta"
@@ -198,7 +234,7 @@ class Consulta(Base):
         session.add(self)
         session.commit()
 
-#================================================================================================
+#===================================Diagnostico====================================================
 
 class Diagnostico(Base):
     __tablename__ = "diagnostico"
@@ -222,7 +258,7 @@ class Diagnostico(Base):
         paciente.prontuario = self
         print(f"Diagnóstico adicionado ao prontuário de {paciente.nome_paciente}.")
 
-#================================================================================================
+#===================================Tratamento=================================================
 
 class Tratamento(Base):
     __tablename__ = "tratamento"
@@ -240,7 +276,7 @@ class Tratamento(Base):
         session.commit()
         print(f"Tratamento adicionado ao prontuário de {paciente.nome_paciente}.")
 
-#================================================================================================
+#====================================Receita=================================================
 
 class Receita(Base):
     __tablename__ = "receita"
@@ -267,13 +303,17 @@ class Receita(Base):
         session.commit()
         print(f"Receita adicionado ao prontuário de {paciente.nome_paciente}.")
 
-#================================================================================================
+
+#=========================================== Metódos e Adicionando a tabela ================================
     
 Base.metadata.create_all(bind=db)
+
+#============================ Chamando o meth e adicionando paciente ============================ #
+
 # Agora, testando a adição de um novo paciente
 novo_paciente = Paciente.adicionar_paciente(
     session=session,
-    cpf='42276413911',
+    cpf='42276413901',
     nome='Antonio Arthur',
     data_nascimento=datetime(2005, 5, 17).date(),  # Converte para objeto date
     telefone='11999999999',
@@ -290,56 +330,86 @@ session.add(novo_paciente)
 session.commit()
 print("Paciente adicionado com sucesso!")
 
+
+#============================ Chamando o meth e adicionando médico ============================ #
+
+novo_medico = Medico.adicionar_medico(
+    session=session,
+    crm='21232', 
+    nome_medico='Pedro',
+    especialidade='Clinico Geral',  
+    senha='21232'
+)
+
+print(f"Dr(a) {novo_medico.nome_medico} adicionado com sucesso! {novo_medico.crm}")
+session.add(novo_medico)
+session.commit()
+print("Dr(a) adicionado com sucesso!")
+
+#=========================================================================================================
+
+Medico.visualizar_todos_pacientes(session)
+
+#=========================================================================================================
+
+
+
+
+
+
 #============================ Login ============================ #
 
 def login(cpf=None, crm=None, senha=None, user_type=None): 
     if user_type == 'paciente':
         usuario = session.query(Paciente).filter_by(cpf=cpf, senha=senha).first()
-        
+        if usuario:
+            print(f"Login bem-sucedido como {user_type}, bem-vindo {usuario.nome_paciente}")
+            opcao = menu_paciente.menu_paciente()
+            while opcao != '3':
+                if opcao == '1':
+                    print("Visualizar")
+
+                elif opcao == '2':
+                    print("Cancelar")
+                else:
+                    print("Opção inválida. Tente novamente.")
+                opcao = menu_paciente.menu_paciente()
+        else:
+            return "Usuario não encontrado!"
     elif user_type == 'medico':
         usuario = session.query(Medico).filter_by(crm=crm, senha=senha).first()
+        if usuario:
+            print(f"Login bem-sucedido como {user_type}, bem-vindo {usuario.nome_medico}")
+            opcao = menu_medico.menu_medico()
+            while opcao != '4':
+                if opcao == '1':
+                    print("Visualizando consultas...")
+                    
+                elif opcao == '2':
+                    print("Adicionando consulta...")
+                    
+                elif opcao == '3':
+                    print("Visualizando pacientes...")
+                    Medico.visualizar_todos_pacientes(session)
+                else:
+                    print("Opção inválida. Tente novamente.")
+                opcao = menu_medico.menu_medico()
+        else:
+            return "Usuario não encontrado!"
 
-    if usuario:
-        paciente_buscado = session.query(Paciente).filter(Paciente.cpf == "42276413816").first()
-        if paciente_buscado:
-            print(f"Nome: {paciente_buscado.nome_paciente}")
-            print(f"CPF: {paciente_buscado.cpf}")
-            print(f"Data de Nascimento: {paciente_buscado.data_nascimento}")
-            print(f"Telefone: {paciente_buscado.telefone}")
-            print(f"Sexo: {paciente_buscado.sexo}")
-            print(f"Endereço: {paciente_buscado.endereco}")
-            print(f"Nacionalidade: {paciente_buscado.nacionalidade}")
-        return f"Login bem-sucedido como {user_type}, bem-vindo {paciente_buscado.nome_paciente if user_type == 'paciente' else 'medico' }"
-    else: 
-        return "Usuario não encontrado!"
+usuario_tipo = input("Você está logando como 'paciente' ou 'medico'? ")
+cpf = None
+crm = None
+if usuario_tipo == 'paciente':
+    cpf = input("Digite seu CPF: ")
+elif usuario_tipo == 'medico':
+    crm = input("Digite seu CRM: ")
+senha = input("Digite sua senha: ")
 
-cpf = '42276413816'
-senha = '12345678'
-user_type = 'paciente'
-crm = None  # Como estamos logando um paciente, CRM é None
-
-print(login(cpf=cpf, crm=crm, senha=senha, user_type=user_type)) 
+login(cpf=cpf, crm=crm, senha=senha, user_type=usuario_tipo)
 
 
-""" # Adicionando um médico
-medico = Medico(
-    crm=123456,
-    nome_medico="Dr. Carlos",
-    especialidade="Cardiologia"
-)
-session.add(medico)
-session.commit()
-print("Médico adicionado com sucesso.")
-
-# Testando login do paciente
-cpf = "12345678901"
-senha = "senha_do_usuario"  # A senha deve ser a mesma usada para o hash
-paciente_login = login_paciente(cpf, senha, session)
-if paciente_login:
-    print(f"Login bem-sucedido para {paciente_login.nome_paciente}.")
-else:
-    print("Login falhou.")
-
+""" 
 # Agendando uma consulta
 data_hora = "2024-10-30 10:00:00"
 consulta = Consulta()
