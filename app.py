@@ -135,39 +135,11 @@ class Medico(Base):
 
 
 
-    """
-                                        Comentado por não está pronto para uso
-                                        Se for utilizar, relacionar com a tabela consulta
-
-        consultas = relationship("Consulta", back_populates="medico")
-
-     def visualizar_consulta(self, session): 
-        consultas = session.query(Consulta).filter(Consulta.medico_crm == self.crm).all()
-        return [consulta.visualizar_consulta(session) for consulta in consultas]
-    
-    def editar_consulta(self, consulta_id, novos_dados, session):
-        consulta = session.query(Consulta).filter(Consulta.id_consulta == consulta_id).first()
-        if consulta: 
-            for key, value in novos_dados.items():
-                setattr(consulta, key, value)
-            session.commit()
-        else: 
-            print("Consulta não encontrada.")
-
-    def cancelar_consulta(self, consulta_id, session):
-        consulta = session.query(Consulta).filter(Consulta.id_consulta == consulta_id).first()
-        if consulta: 
-            consulta.cancelar_consulta_agendada(session)
-        else:
-            print("Consulta não encontrada.") """
 
 #=====================================Consulta=================================================
 
 class Consulta(Base):
-    __tablename__= "consulta"
-
-    medico      = relationship("Medico", back_populates="consultas")
-    paciente    = relationship("Paciente", back_populates="consultas")
+    __tablename__ = "consulta"
 
     id_consulta = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
     data_hora = Column(DateTime, nullable=False)
@@ -175,64 +147,80 @@ class Consulta(Base):
     paciente_cpf = Column(String(14), ForeignKey('paciente.cpf'), nullable=False)
     medico_crm = Column(Integer, ForeignKey('medico.crm'), nullable=False)
 
-    paciente = relationship("Paciente")
-    medico = relationship("Medico")
+    paciente = relationship("Paciente", back_populates="consultas")
+    medico = relationship("Medico", back_populates="consultas")
 
-    def set_agendar_consulta_paciente(self, session, data_hora, paciente_cpf, medico_crm):
-        # Solicitar dados da consulta
-        data_hora = input('Insira a data e hora da consulta (AAAA-MM-DD HH:MM): ')
+    @classmethod
+    def agendar_consulta(cls, session, paciente_cpf, medico_crm):
 
-        # Criar um objeto de consulta com status padrão como True (agendada)
-        consulta_agendada = Consulta(
-            data_hora=data_hora,
-            status=True,  # Definindo a consulta como agendada
-            paciente_cpf=paciente_cpf,
+        paciente = session.query(Paciente).filter_by(cpf=paciente_cpf).first() 
+        medico = session.query(Medico).filter_by(crm=medico_crm).first() 
+        if not paciente: 
+            print(f"Paciente com CPF {paciente_cpf} não encontrado!") 
+            return None 
+        if not medico: 
+            print(f"Médico com CRM {medico_crm} não encontrado!") 
+            return None
+
+        data_hora_str = input("Informe a data e hora da consulta (AAAA-MM-DD HH:MM): ")
+        data_hora = datetime.strptime(data_hora_str, '%Y-%m-%d %H:%M')
+        
+        consulta_agendada = cls(
+            data_hora = data_hora,
+            status=True,
+            paciente_cpf=paciente_cpf, 
             medico_crm=medico_crm
         )
 
-        # Adicionar a consulta à sessão e salvar no banco de dados
         session.add(consulta_agendada)
         session.commit()
 
-        print(f"Consulta agendada com sucesso para o paciente {paciente_cpf} com o médico {medico_crm}!")
+        print(f"Consulta agendada com sucesso para o paciente {paciente_cpf} \n Com o médico {medico.nome}")
 
-        return consulta_agendada
-    
-    def cancelar_consulta(self, consulta_id, session):
-        consulta = session.query(Consulta).filter(Consulta.id_consulta == consulta_id).first()
-        if consulta:
-            consulta.status = False  # Alterar o status para False (cancelada)
+    @classmethod
+    def cancelar_consulta(cls, session, id_consulta):
+        consulta = session.query(cls).filter_by(id_consulta=id_consulta).first()
+        if consulta: 
+            session.delete(consulta)
             session.commit()
-            print("Consulta cancelada com sucesso!")
+            print(f"Consulta com ID {id_consulta} cancelada com sucesso!")
         else:
-            print("Consulta não encontrada.")
+            print(f"Consulta com ID {id_consulta} não encontrada!")
 
-    def visualizar_consulta(self, session, consulta_id=None, paciente_cpf=None, medico_crm=None):
-        query = session.query(Consulta)
+    
+    @classmethod
+    def editar_consulta(cls, session, id_consulta): 
+        consulta = session.query(cls).filter_by(id_consulta=id_consulta).first()
+        if not consulta:
+            print(f"Consulta com ID {id_consulta} não encontrada!")
+            return None
+        print("Deixe em branco para manter o valor atual")
 
-        if consulta_id:
-            query = query.filter(Consulta.id_consulta == consulta_id)
-        elif paciente_cpf:
-            query = query.filter(Consulta.paciente_cpf == paciente_cpf)
-        elif medico_crm:
-            query = query.filter(Consulta.medico_crm == medico_crm)
-
-        consulta_buscada = query.all()#mudado - estava "consulta_buscada = query.first()"
-
-        if consulta_buscada:
-            return consulta_buscada
-        else:
-            print("Consulta não encontrada!")
-
-    def cancelar_consulta_agendada(self, session):
-        if self.status.lower() == "Cancelada":
-            print("A consulta já está cancelada")
-            return
+        data_hora_str = input(f"Informe a nova data e hora da consulta (AAAA-MM-DD HH:MM) [{consulta.data_hora}]: ")
+        if data_hora_str:
+            consulta.data_hora = datetime.strptime(data_hora_str, '%Y-%m-%d %H:%M')
         
-        self.status = "Cancelada"
+        status_str = input(f"Informe o novo status da consulta (True/False) [{consulta.status}]: ")
+        if status_str:
+            consulta.status = status_str.lower() in ['true', 1]
 
-        session.add(self)
         session.commit()
+        print(f"Consulta com ID {id_consulta} atualizada com sucesso!")
+
+    @classmethod
+    def visualizar_consultas_paciente(cls, session, paciente_cpf):
+        consultas = session.query(cls).filter_by(paciente_cpf=paciente_cpf).all()
+        if consultas:
+            print(f"\n Consultas do Paciente com CPF {paciente_cpf}:\n" + "="*50)
+            for consulta in consultas:
+                medico = session.query(Medico).filter_by(crm=consulta.medico_crm).first()
+                print("="*50)
+                print(f"ID Consulta: {consulta.id_consulta}")
+                print(f"Data e Hora: {consulta.data_hora}")
+                print(f"Status: {consulta.status}")
+                print(f"Médico: Dr. {medico.nome_medico} (CRM: {medico.crm})")
+                print("="*50)
+
 
 #===================================Diagnostico====================================================
 
@@ -350,17 +338,34 @@ print("Dr(a) adicionado com sucesso!")
 
 Medico.visualizar_todos_pacientes(session)
 
-#========================================================================================================
+#============================= Testando metodos de consulta=========================================
+
+Consulta.agendar_consulta(
+    session, 
+    paciente_cpf=input("Digite o CPF do paciente: "),
+    medico_crm=input("Digite o CRM do médico: ")
+)
+
+Consulta.cancelar_consulta(
+    session=session, 
+    id_consulta=int(input("Digite o ID da consulta que quer deletar: "))
+)
+
+Consulta.editar_consulta(
+    session,
+    id_consulta=int(input("Digite o ID da consulta que deseja editar: "))
+)
+
+Consulta.visualizar_consultas_paciente(
+    session, 
+    paciente_cpf=int(input("Digite o CPF do paciente que deseja ver as consultas: "))
+)
 
 
-
-
-
-
-#============================ Login ============================ #
+#===================================================== Login ======================================================================= #
 
 def login(cpf=None, crm=None, senha=None, user_type=None): 
-    if user_type == 'paciente':
+    if user_type == '1':
         usuario = session.query(Paciente).filter_by(cpf=cpf, senha=senha).first()
         if usuario:
             print(f"Login bem-sucedido como {user_type}, bem-vindo {usuario.nome_paciente}")
@@ -368,15 +373,14 @@ def login(cpf=None, crm=None, senha=None, user_type=None):
             while opcao != '3':
                 if opcao == '1':
                     print("Visualizar")
-
                 elif opcao == '2':
                     print("Cancelar")
                 else:
                     print("Opção inválida. Tente novamente.")
                 opcao = menu_paciente.menu_paciente()
         else:
-            return "Usuario não encontrado!"
-    elif user_type == 'medico':
+            print("Usuario não encontrado!")
+    elif user_type == '2':
         usuario = session.query(Medico).filter_by(crm=crm, senha=senha).first()
         if usuario:
             print(f"Login bem-sucedido como {user_type}, bem-vindo {usuario.nome_medico}")
@@ -395,36 +399,25 @@ def login(cpf=None, crm=None, senha=None, user_type=None):
                     print("Opção inválida. Tente novamente.")
                 opcao = menu_medico.menu_medico()
         else:
-            return "Usuario não encontrado!"
+            print("Usuario não encontrado!")
+    
+def escolha_usuario():
+    print("\n==================== Deseja fazer login como: ======================")
+    print("1. 👤 Paciente")
+    print("2. 🧑‍⚕️ Medico")
+    print("3. 🚪 Sair")
+    print("=======================================================")
+    opcao = input("Escolha uma opção: ")
+    return opcao
 
-usuario_tipo = input("Você está logando como 'paciente' ou 'medico'? ")
+usuario_tipo = escolha_usuario()
 cpf = None
 crm = None
-if usuario_tipo == 'paciente':
+if usuario_tipo == '1':
     cpf = input("Digite seu CPF: ")
-elif usuario_tipo == 'medico':
+elif usuario_tipo == '2':
     crm = input("Digite seu CRM: ")
 senha = input("Digite sua senha: ")
 
-login(cpf=cpf, crm=crm, senha=senha, user_type=usuario_tipo)
+login(cpf=cpf, crm=crm, senha=senha, user_type=usuario_tipo) 
 
-
-""" 
-# Agendando uma consulta
-data_hora = "2024-10-30 10:00:00"
-consulta = Consulta()
-consulta.agendar_consulta_paciente(session, "12345678901", 123456, data_hora)
-print("Consulta agendada com sucesso.")
-
-# Visualizando consultas do paciente
-consultas = paciente.visualizar_consulta(session)
-for consulta in consultas:
-    print(f"Consulta ID: {consulta.id_consulta}, Data: {consulta.data_hora}, Status: {consulta.status}")
-
-# Cancelando uma consulta
-consulta_id = 1  # Supondo que a consulta ID 1 exista
-paciente.cancelar_consulta(consulta_id, session)
-print("Consulta cancelada com sucesso.")
-
-# Fechar a sessão
-session.close() """
