@@ -16,8 +16,9 @@ Base = declarative_base()
 #===================================Prontuario====================================================
 
 class Prontuario(Base):
-    __tablename__ = "prontuario"
+    __tablename__ = 'prontuario'
     numero_prontuario = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
+    diagnosticos = relationship("Diagnostico", back_populates="prontuario")
 
 #===================================Paciente===============================================
 
@@ -37,6 +38,9 @@ class Paciente(Base):
     senha = Column(String(8), nullable=False)
 
     prontuario = relationship("Prontuario")
+    consultas = relationship("Consulta", back_populates="paciente")
+    diagnosticos = relationship("Diagnostico", back_populates="paciente")
+
 
     @classmethod
     def adicionar_paciente(cls, session, cpf, nome, data_nascimento, telefone, sexo, endereco, nacionalidade, senha):
@@ -59,32 +63,6 @@ class Paciente(Base):
         session.commit()
         return novo_paciente
 
-    """ def set_new_paciente(session):
-        while True:
-            print('==== NOVO PACIENTE')
-
-            cpf = input('Insira o cpf do paciente: ')
-            nome_paciente = input('Informe o nome completo do paciente: ')
-            data_nascimento = input('Coloque a data de nascimento do paciente: ')
-            telefone = input('Digite o telefone de contato do paciente: ')
-            email = input("Insira o email do paciente: ")
-            sexo = ("Informe o sexo do paciente: ")
-            endereco = ("Insira o endereço do paciente: ")
-            nacionalidade = ("Informe a nacionalidade do paciente: ")
-
-
-#                            ADICIONANDO PACIENTE
-
-            novo_paciente = Paciente(
-                cpf=cpf,
-                nome_paciente=nome_paciente,
-                data_nascimento=data_nascimento,
-                email=email,
-                telefone=telefone,
-                sexo=sexo,
-                endereco=endereco,
-                nacionalidade=nacionalidade,
-            ) """
 
     def visualizar_consulta(self, session): 
         consultas = session.query(Consulta).filter(Consulta.paciente_cpf == self.cpf).all()
@@ -106,6 +84,9 @@ class Medico(Base):
     nome_medico = Column(String(45), nullable=False)
     especialidade = Column(String(25), nullable=False)
     senha = Column(String(8), nullable=False)
+
+    consultas = relationship("Consulta", back_populates="medico")
+    diagnosticos = relationship("Diagnostico", back_populates="medico")
 
     @classmethod
     def adicionar_medico(cls, session, crm, nome_medico, especialidade, senha):
@@ -149,6 +130,7 @@ class Consulta(Base):
 
     paciente = relationship("Paciente", back_populates="consultas")
     medico = relationship("Medico", back_populates="consultas")
+    diagnosticos = relationship("Diagnostico", back_populates="consulta")
 
     @classmethod
     def agendar_consulta(cls, session, paciente_cpf, medico_crm):
@@ -175,7 +157,7 @@ class Consulta(Base):
         session.add(consulta_agendada)
         session.commit()
 
-        print(f"Consulta agendada com sucesso para o paciente {paciente_cpf} \n Com o médico {medico.nome}")
+        print(f"Consulta agendada com sucesso para o paciente {paciente_cpf} \n Com o médico {medico_crm}")
 
     @classmethod
     def cancelar_consulta(cls, session, id_consulta):
@@ -236,15 +218,38 @@ class Diagnostico(Base):
     paciente_cpf = Column(String(14), ForeignKey('paciente.cpf'), nullable=False)
     medico_crm = Column(Integer, ForeignKey('medico.crm'), nullable=False)
 
-    consulta = relationship("Consulta")
-    paciente = relationship("Paciente")
-    medico = relationship("Medico")
+    consulta = relationship("Consulta", back_populates="diagnosticos")
+    paciente = relationship("Paciente", back_populates="diagnosticos")
+    medico = relationship("Medico", back_populates="diagnosticos")
+    prontuario = relationship("Prontuario", back_populates="diagnosticos")
 
-    def adicionar_ao_prontuario(self, session, paciente): 
-        session.add(self)
+    @classmethod
+    def adicionar_diagnostico(cls, session, cid, descricao, consulta_id, paciente_cpf, medico_crm, prontuario_id):
+        consulta = session.query(Consulta).filter_by(id_consulta=consulta_id).first()
+        paciente = session.query(Paciente).filter_by(cpf=paciente_cpf).first()
+        medico = session.query(Medico).filter_by(crm=medico_crm).first()
+
+        if not consulta:
+            print(f"Consulta com ID {consulta_id} não encontrada!")
+            return None
+        if not paciente:
+            print(f"Paciente com CPF {paciente_cpf} não encontrado!")
+            return None
+        if not medico:
+            print(f"Médico com CRM {medico_crm} não encontrado!")
+            return None
+
+        novo_diagnostico = cls(
+            cid=cid,
+            descricao=descricao,
+            consulta_id=consulta_id,
+            paciente_cpf=paciente_cpf,
+            medico_crm=medico_crm,
+            prontuario_id=prontuario_id
+        )
+        session.add(novo_diagnostico)
         session.commit()
-        paciente.prontuario = self
-        print(f"Diagnóstico adicionado ao prontuário de {paciente.nome_paciente}.")
+        return novo_diagnostico
 
 #===================================Tratamento=================================================
 
@@ -361,6 +366,20 @@ Consulta.visualizar_consultas_paciente(
     paciente_cpf=int(input("Digite o CPF do paciente que deseja ver as consultas: "))
 )
 
+#================================ Adicionando Diagnostico ======================================
+
+novo_diagnostico = Diagnostico.adicionar_diagnostico(
+    session=session,  
+    cid="F32.0",
+    descricao="Episódio depressivo leve",
+    consulta_id=1,
+    paciente_cpf="42276413901",
+    medico_crm=21232,
+    prontuario_id=1
+)
+
+if novo_diagnostico:
+    print(f"Diagnóstico adicionado: {novo_diagnostico.cid} - {novo_diagnostico.descricao}")
 
 #===================================================== Login ======================================================================= #
 
