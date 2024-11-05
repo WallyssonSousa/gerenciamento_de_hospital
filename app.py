@@ -228,6 +228,7 @@ class Diagnostico(Base):
         consulta = session.query(Consulta).filter_by(id_consulta=consulta_id).first()
         paciente = session.query(Paciente).filter_by(cpf=paciente_cpf).first()
         medico = session.query(Medico).filter_by(crm=medico_crm).first()
+        tratamentos = relationship("Tratamento", back_populates="diagnostico")
 
         if not consulta:
             print(f"Consulta com ID {consulta_id} não encontrada!")
@@ -254,20 +255,34 @@ class Diagnostico(Base):
 #===================================Tratamento=================================================
 
 class Tratamento(Base):
-    __tablename__ = "tratamento"
-
+    __tablename__ = 'tratamento'
+    
     id_tratamento = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
-    descricao = Column(String(100), nullable=False)
+    descricao = Column(String(256), nullable=False)
     duracao = Column(String(20), nullable=False)
     medicamentos = Column(String(256), nullable=False)
     diagnostico_id = Column(Integer, ForeignKey('diagnostico.id_diagnostico'), nullable=False)
 
-    diagnostico = relationship("Diagnostico")
-    
-    def adicionar_ao_prontuario(self, session, paciente):
-        session.add(self)
+    diagnostico = relationship("Diagnostico", back_populates="tratamentos")
+
+    @classmethod
+    def adicionar_tratamento(cls, session, descricao, duracao, medicamentos, diagnostico_id):
+
+        diagnostico = session.query(Diagnostico).filter_by(id_diagnostico=diagnostico_id).first()
+
+        if not diagnostico:
+            print(f"Diagnóstico com ID {diagnostico_id} não encontrado!")
+            return None
+
+        novo_tratamento = cls(
+            descricao=descricao, 
+            duracao=duracao, 
+            medicamentos=medicamentos,
+            diagnostico_id=diagnostico_id
+        )
+        session.add(novo_tratamento)
         session.commit()
-        print(f"Tratamento adicionado ao prontuário de {paciente.nome_paciente}.")
+        return novo_tratamento
 
 #====================================Receita=================================================
 
@@ -380,6 +395,20 @@ novo_diagnostico = Diagnostico.adicionar_diagnostico(
 
 if novo_diagnostico:
     print(f"Diagnóstico adicionado: {novo_diagnostico.cid} - {novo_diagnostico.descricao}")
+
+#====================================================== Adicionando Tratamento ==================================================
+
+novo_tratamento = Tratamento.adicionar_tratamento(
+    session=session,
+    descricao="Testando descricao", 
+    duracao="1 semana", 
+    medicamentos="Remédio pra loucura",
+    diagnostico_id=1  
+)
+
+if novo_tratamento:
+    print(f"Tratamento adicionado: {novo_tratamento.descricao}, tratamento em virtude do diagnostico: {novo_tratamento.diagnostico_id}")
+
 
 #===================================================== Login ======================================================================= #
 

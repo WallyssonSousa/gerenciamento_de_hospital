@@ -65,6 +65,7 @@ class Diagnostico(Base):
     paciente = relationship("Paciente", back_populates="diagnosticos")
     medico = relationship("Medico", back_populates="diagnosticos")
     prontuario = relationship("Prontuario", back_populates="diagnosticos")
+    tratamentos = relationship("Tratamento", back_populates="diagnostico")
 
     @classmethod
     def adicionar_diagnostico(cls, session, cid, descricao, consulta_id, paciente_cpf, medico_crm, prontuario_id):
@@ -95,17 +96,45 @@ class Diagnostico(Base):
         return novo_diagnostico
 
 
+class Tratamento(Base):
+    __tablename__ = 'tratamento'
+    
+    id_tratamento = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
+    descricao = Column(String(256), nullable=False)
+    duracao = Column(String(20), nullable=False)
+    medicamentos = Column(String(256), nullable=False)
+    diagnostico_id = Column(Integer, ForeignKey('diagnostico.id_diagnostico'), nullable=False)
+
+    diagnostico = relationship("Diagnostico", back_populates="tratamentos")
+
+    @classmethod
+    def adicionar_tratamento(cls, session, descricao, duracao, medicamentos, diagnostico_id):
+
+        diagnostico = session.query(Diagnostico).filter_by(id_diagnostico=diagnostico_id).first()
+
+        if not diagnostico:
+            print(f"Diagnóstico com ID {diagnostico_id} não encontrado!")
+            return None
+
+        novo_tratamento = cls(
+            descricao=descricao, 
+            duracao=duracao, 
+            medicamentos=medicamentos,
+            diagnostico_id=diagnostico_id
+        )
+        session.add(novo_tratamento)
+        session.commit()
+        return novo_tratamento
+
 Base.metadata.create_all(db)
 
-novo_diagnostico = Diagnostico.adicionar_diagnostico(
-    session=session,  
-    cid="F32.0",
-    descricao="Episódio depressivo leve",
-    consulta_id=1,
-    paciente_cpf="42276413901",
-    medico_crm=21232,
-    prontuario_id=1
+novo_tratamento = Tratamento.adicionar_tratamento(
+    session=session,
+    descricao="Testando descricao", 
+    duracao="1 semana", 
+    medicamentos="Remédio pra loucura",
+    diagnostico_id=1  
 )
 
-if novo_diagnostico:
-    print(f"Diagnóstico adicionado: {novo_diagnostico.cid} - {novo_diagnostico.descricao}")
+if novo_tratamento:
+    print(f"Tratamento adicionado: {novo_tratamento.descricao}, tratamento em virtude do diagnostico: {novo_tratamento.diagnostico_id}")
