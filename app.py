@@ -18,11 +18,86 @@ Base = declarative_base()
 class Prontuario(Base):
     __tablename__ = 'prontuario'
     numero_prontuario = Column(Integer, primary_key=True, autoincrement=True, nullable=False)
-    diagnosticos = relationship("Diagnostico", back_populates="prontuario")
 
+    paciente = relationship("Paciente", back_populates="prontuario")
+    diagnosticos = relationship("Diagnostico", back_populates="prontuario")
+    consultas = relationship("Consulta", back_populates="prontuario")
+    tratamentos = relationship("Tratamento", back_populates="prontuario")
+    receitas = relationship("Receita", back_populates="prontuario")
+
+    def visualizar_consultas_prontuario(self, session):
+        consultas_busca = session.query(Consulta).filter(Consulta.paciente_cpf == self.paciente.cpf).all()
+        if consultas_busca:
+            print(f"\nConsultas do Paciente {self.paciente.nome_paciente} ({self.paciente.cpf}):")
+            print("=" * 50)
+            for consulta_buscada in consultas_busca:
+                medico_responsavel = session.query(Medico).filter_by(crm=consulta_buscada.medico_crm).first()
+                print("-"*50)
+                print(f"\nID da Consulta: {consulta_buscada.id_consulta}")
+                print(f"Data e Hora: {consulta_buscada.data_hora}")
+                print(f"Status: {'Agendada' if consulta_buscada.status else 'Cancelada'}")
+                print(f"Médico: Dr. {medico_responsavel.nome_medico} (CRM: {medico_responsavel.crm})")
+                print("-" * 50)
+        else:
+            print("Nenhuma consulta encontrada para este paciente.")
+
+    def visualizar_diagnostico_prontuario(self, session):
+        diagnosticos_busca = session.query(Diagnostico).filter_by(Diagnostico.paciente_cpf).all()
+        if diagnosticos_busca:
+            print(f"\nDiagnosticos do Paciente {self.paciente.nome_paciente} ({self.paciente.cpf}):")
+            print("=" * 50)
+            for diagnostico_buscado in diagnosticos_busca:
+                medico_responsavel = session.query(Medico).filter_by(crm=diagnostico_buscado.medico_crm).first()
+                print("-"* 50)
+                print(f"\nID do diagnostico: {diagnostico_buscado.id_diagnostico}")
+                print(f"CID: {diagnostico_buscado.cid}")
+                print(f"Descrição: {diagnostico_buscado.descricao}")
+                print(f"Médico: {medico_responsavel.nome_medico} (CRM: {medico_responsavel.crm})")
+
+    # def visualizar_tratamento_prontuario(self, session):
+    #     tratamentos_busca = session.query(Tratamento).join(Diagnostico).filter(Diagnostico.paciente_cpf == self.paciente.cpf).all()
+    #     if tratamentos_busca:
+    #         print(f"\nTratamentos do Paciente {self.paciente.nome_paciente} ({self.paciente.cpf}):")
+    #         print("=" * 50)
+    #         for tratamento_buscado in tratamentos_busca:
+    #             diagnostico_responsavel = session.query(Diagnostico).filter_by(id_diagnostico=Tratamento.diagnostico_id).first()
+    #             print("-"* 50)
+    #             print(f"\nID do tratamento: {tratamento_buscado.id_diagnostico}")
+    #             print(f"CID: {tratamento_buscado.cid}")
+    #             print(f"Descrição: {tratamento_buscado.descricao}")
+    #             print(f"Médico: {diagnostico_responsavel.nome_medico} (CRM: {diagnostico_responsavel.crm})")
+
+    def gerar_prontuario_completo(self, session):
+        print(f"Relatório Completo do Prontuário {self.numero_prontuario}")
+        print("=" * 20)
+
+        # -----------------------------------------------     EXIBINDO CONSULTAS DO PACIENTE
+        self.visualizar_consultas_prontuario()
+
+        # -----------------------------------------------     EXIBINDO DIAGNOSTICOS DO PACIENTE
+        print("=" * 20)
+
+        self.visualizar_diagnostico_prontuario()
+    
+        print("\nTratamentos:")
+        for tratamento in self.tratamentos:
+            print("="*20)
+            print(f"Descrição: {tratamento.descricao}")
+            print(f" Duração: {tratamento.duracao}")
+            print(f"Medicamentos: {tratamento.medicamentos}")
+
+        # Receitas
+        print("\nReceitas:")
+        for receita in self.receitas:
+            print(f"ID da receita: {receita.id_receita}")
+            print(f" Descrição: {receita.descricao}")
+            print(f" Médico: {receita.nome_medico}")
+        print("=" * 20)
+
+    
 #===================================Paciente===============================================
 
-class Paciente(Base):
+class Paciente(Base):   
     __tablename__ = 'paciente'
 
     consultas = relationship("Consulta", back_populates="paciente")
@@ -113,9 +188,6 @@ class Medico(Base):
             print(f"Endereço: {paciente.endereco}")
             print(f"Nacionalidade: {paciente.nacionalidade}")
             print("="*50)
-
-
-
 
 #=====================================Consulta=================================================
 
@@ -217,6 +289,7 @@ class Diagnostico(Base):
     consulta_id = Column(Integer, ForeignKey('consulta.id_consulta'), nullable=False)
     paciente_cpf = Column(String(14), ForeignKey('paciente.cpf'), nullable=False)
     medico_crm = Column(Integer, ForeignKey('medico.crm'), nullable=False)
+
 
     consulta = relationship("Consulta", back_populates="diagnosticos")
     paciente = relationship("Paciente", back_populates="diagnosticos")
