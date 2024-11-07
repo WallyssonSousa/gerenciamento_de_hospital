@@ -144,6 +144,19 @@ class Paciente(Base):
         else:
             print(f"Consulta com ID {id_consulta} não encontrada ou não pertence ao paciente com CPF {paciente_cpf}.")
 
+    @staticmethod
+    def deletar_paciente_por_cpf(session, cpf):
+        # Buscar o paciente pelo CPF
+        paciente = session.query(Paciente).filter_by(cpf=cpf).first()
+        
+        # Se o paciente for encontrado, deletar
+        if paciente:
+            session.delete(paciente)  # Deleta o paciente encontrado
+            session.commit()  # Confirma a transação
+            print(f"Paciente com CPF {cpf} deletado com sucesso!")
+        else:
+            print(f"Paciente com CPF {cpf} não encontrado!")
+
 # ================================= Medico ========================================================== #
 class Medico(Base):
     __tablename__ = 'medico'
@@ -422,7 +435,6 @@ Base.metadata.create_all(db)
 
 # Inserção de Dados
 
-
 """ novo_medico = Medico.adicionar_medico(
     session=session,
     crm=21232, 
@@ -430,140 +442,134 @@ Base.metadata.create_all(db)
     especialidade='Cirurgia geral',
     senha='21232'
 )
-print(f"DR(A): {novo_medico.nome_medico} do CRM: {novo_medico.crm} adicionado com sucesso!")  """
+print(f"DR(A): {novo_medico.nome_medico} do CRM: {novo_medico.crm} adicionado com sucesso!")   """
 
 #===================================================== Login ======================================================================= #
 
 def login(cpf=None, crm=None, senha=None, user_type=None): 
-    if user_type == '1':
-        usuario = session.query(Paciente).filter_by(cpf=cpf, senha=senha).first()
-        if usuario:
-            print(f"Login bem-sucedido como {user_type}, bem-vindo {usuario.nome_paciente}")
+    if user_type == '1':  # Login como paciente
+        paciente = session.query(Paciente).filter_by(cpf=cpf, senha=senha).first()
+        if paciente:
+            print(f"Login bem-sucedido! Bem-vindo {paciente.nome_paciente}")
             opcao = menu_paciente.menu_paciente()
             while opcao != '4':
                 if opcao == '1':
-                    Paciente.visualizar_consultas(session, paciente_cpf=input("Digite seu CPF para visualizar suas consultas: "))
+                    Paciente.visualizar_consultas(session, paciente_cpf=cpf)
                 elif opcao == '2':
-                    Paciente.cancelar_consulta(session, paciente_cpf=input("Digite seu CPF: "), id_consulta=input("Digite o ID da consulta: "))
+                    Paciente.cancelar_consulta(session, paciente_cpf=cpf, id_consulta=input("Digite o ID da consulta: "))
                 elif opcao == '3':
-                    Receita.visualizar_receitas_paciente(session, paciente_cpf=input("Digite seu CPF: "))
+                    Receita.visualizar_receitas_paciente(session, paciente_cpf=cpf)
                 else:
                     print("Opção inválida. Tente novamente.")
                 opcao = menu_paciente.menu_paciente()
         else:
-            print("Usuario não encontrado!")
-    elif user_type == '2':
-        usuario = session.query(Medico).filter_by(crm=crm, senha=senha).first()
-        if usuario:
-            print(f"Login bem-sucedido como {user_type}, bem-vindo {usuario.nome_medico}")
+            print("Usuário não encontrado!")
+    
+    elif user_type == '2':  # Login como médico
+        medico = session.query(Medico).filter_by(crm=crm, senha=senha).first()
+        if medico:
+            print(f"Login bem-sucedido como Médico, bem-vindo {medico.nome_medico}")
             opcao = menu_medico.menu_medico()
-            while opcao != '13':
+            while opcao != '14':
                 if opcao == '1':
-                    Consulta.visualizar_consultas_paciente(
-                        session, 
-                        paciente_cpf=input("Digite o CPF do paciente que deseja ver as consultas: ")
-                    )
+                    Consulta.visualizar_consultas_paciente(session, paciente_cpf=input("Digite o CPF do paciente: "))
                 elif opcao == '2':
-                    Consulta.agendar_consulta(session, paciente_cpf='42276413816', medico_crm=21232)
+                    Consulta.agendar_consulta(session, paciente_cpf=input("Digite o CPF do paciente: "), medico_crm=input("Digite o CRM do médico: "))
                 elif opcao == '3':
-                    Consulta.editar_consulta(
-                        session,
-                        id_consulta=int(input("Digite o ID da consulta que deseja editar: "))
-                    )
+                    Consulta.editar_consulta(session, id_consulta=int(input("Digite o ID da consulta que deseja editar: ")))
                 elif opcao == '4':
-                    Consulta.cancelar_consulta(
-                        session=session, 
-                        id_consulta=int(input("Digite o ID da consulta que quer deletar: "))
-                    ) 
+                    Consulta.cancelar_consulta(session, id_consulta=int(input("Digite o ID da consulta para cancelar: ")))
                 elif opcao == '5':
-                    print("Visualizando pacientes...")
-                    # Funcionalidades
                     Medico.visualizar_todos_paciente(session)
                 elif opcao == '6':
-                    print("Adicionando pacientes...")
                     novo_paciente = Paciente.adicionar_paciente(
-                        session=session,
-                        cpf='42276413816',
-                        nome='Arthur Antonio',
-                        data_nascimento=datetime(2015, 3, 18).date(),
-                        telefone='11999999999',
-                        sexo='Masculino',
-                        endereco='Rua Exemplo, 123',
-                        nacionalidade='Brasileiro', 
-                        senha='13815'  
+                        session=session, 
+                        cpf=input("Digite o CPF do Paciente: "), 
+                        nome=input("Digite o Nome do Paciente: "),
+                        data_nascimento=datetime.strptime(input("Digite a Data de Nascimento (AAAA-MM-DD): "), "%Y-%m-%d").date(),
+                        telefone=input("Digite o Telefone: "),
+                        sexo="Digite o sexo do Paciente: ", 
+                        endereco=input("Digite o Endereco: "), 
+                        nacionalidade=input("Digite a nacionalidade: "),
+                        senha=input("Digite a senha: (5 Primeiras letras do CPF): ")
                     )
                     print(f"Paciente {novo_paciente.nome_paciente} adicionado com sucesso!")
                 elif opcao == '7':
-                    # Adicionando Diagnóstico
-                    novo_diagnostico = Diagnostico.adicionar_diagnostico(
-                        session=session,  
-                        cid="F32.0",
-                        descricao="Episódio depressivo leve",
-                        consulta_id=1,
-                        paciente_cpf="42276413816",
-                        medico_crm=21232
-                    )
-
-                    if novo_diagnostico:
-                        print(f"Diagnóstico adicionado: {novo_diagnostico.cid} - {novo_diagnostico.descricao}")
+                    # A função 'excluir_paciente' deve ser definida fora do bloco do 'if' e ser chamada com a 'session' como argumento
+                    def excluir_paciente(session):
+                        cpf = input("Digite o CPF do paciente que deseja excluir: ")
+                        Paciente.deletar_paciente_por_cpf(session, cpf)
+                    
+                    # Passando a session ao chamar a função
+                    excluir_paciente(session)
                 elif opcao == '8':
-                    #Adicionando Tratamento
-                    novo_tratamento = Tratamento.adicionar_tratamento(
-                        session=session,
-                        descricao="Testando descricao", 
-                        duracao="1 semana", 
-                        medicamentos="Remédio pra loucura",
-                        diagnostico_id=1  
+                    novo_diagnostico = Diagnostico.adicionar_diagnostico(
+                        session=session, 
+                        cid=input("Digite o cid do diagnostico: "),
+                        descricao=input("Digite a descricao do diagnostico: "), 
+                        consulta_id=input("Digite o ID da consulta: "),
+                        paciente_cpf=input("Digite o CPF do paciente: "), 
+                        medico_crm=input("Digite o CRM do médico: ")
                     )
-
-                    if novo_tratamento:
-                        print(f"Tratamento adicionado: {novo_tratamento.descricao}, tratamento em virtude do diagnostico: {novo_tratamento.diagnostico_id}")
+                    print(f"Diagnóstico adicionado: {novo_diagnostico.cid} - {novo_diagnostico.descricao}")
                 elif opcao == '9':
-                    # Adicionando Receita
-                    nova_receita = Receita.adicionar_receita(
-                        session=session,
-                        crm_medico=21232,
-                        nome_medico="Pedro",
-                        cpf_paciente='42276413816',  # CPF como string
-                        nome_paciente="Arthur Antonio",
-                        id_diagnostico=1,
-                        id_tratamento=1,
-                        descricao="Testando", 
-                        data_receita=datetime(2024, 11, 6).date()
-                    )
+                        novo_tratamento = Tratamento.adicionar_tratamento(
+                            session=session,
+                            descricao=input("Digite a descricao do tratamento: "), 
+                            duracao=input("Digite a duracao do tratamento: "), 
+                            medicamentos=input("Digite o medicamento do tratamento: "),
+                            diagnostico_id=input("Digite o ID do diagnostico: ")  
+                        )
+                        # Verifique se o retorno não é None
+                        if novo_tratamento:
+                            print(f"Tratamento adicionado: {novo_tratamento.descricao}")
+                        else:
+                            print("Erro ao adicionar tratamento: Não foi retornado um tratamento válido.")
 
-                    if nova_receita:
-                        print(f"Receita criada para o Paciente: {nova_receita.nome_paciente}, pelo DR(A): {nova_receita.nome_medico}")
+                        print(f"Tratamento adicionado: {novo_tratamento.descricao}")
                 elif opcao == '10':
-                    Receita.visualizar_receitas_paciente(session, paciente_cpf=input("Digite o CPF do Paciente: "))
+                    nova_receita = Receita.adicionar_receita(
+                        session=session, 
+                        crm_medico=input("CRM do médico: "),
+                        nome_medico=input("Digite o nome do médico: "), 
+                        cpf_paciente=input("Digite o CPF do paciente: "),
+                        nome_paciente=input("Digite o nome do Paciente: "), 
+                        id_diagnostico=input("Digite o ID do diagnostico: "),
+                        id_tratamento=input("Digite o ID do tratamento: "), 
+                        descricao=input("Digite a descricao da receita: "), 
+                        data_receita=datetime.strptime(input("Digite a Data da Receita (AAAA-MM-DD): "), "%Y-%m-%d").date())
+                    print(f"Receita criada para o Paciente: {nova_receita.nome_paciente}, pelo Dr(a): {nova_receita.nome_medico}")
                 elif opcao == '11':
-                    # Associe o paciente ao prontuário
-                    Prontuario.associar_paciente(session, cpf_paciente=input("Associar paciente ao prontuário: "))
+                    Receita.visualizar_receitas_paciente(session, paciente_cpf=input("Digite o CPF do paciente: "))
                 elif opcao == '12':
-                    # Exibir todas as informações do paciente, consultas, tratamentos e receitas
-                    Prontuario.exibir_informacoes(session, cpf_paciente=input("Digite o CPF do paciente que deseja ver o Prontuario: "))
+                    Prontuario.associar_paciente(session, cpf_paciente=input("Associar paciente ao prontuário: "))
+                elif opcao == '13':
+                    Prontuario.exibir_informacoes(session, cpf_paciente=input("Digite o CPF do paciente para ver o prontuário: "))
                 else:
                     print("Opção inválida. Tente novamente.")
                 opcao = menu_medico.menu_medico()
         else:
-            print("Usuario não encontrado!")
-    
+            print("Médico não encontrado!")
+
 def escolha_usuario():
     print("\n==================== Deseja fazer login como: ======================")
     print("1. 👤 Paciente")
-    print("2. 🧑‍⚕️ Medico")
+    print("2. 🧑‍⚕️ Médico")
     print("3. 🚪 Sair")
     print("=======================================================")
     opcao = input("Escolha uma opção: ")
     return opcao
 
+def obter_dados_login(usuario_tipo):
+    if usuario_tipo == '1':  # Paciente
+        cpf = input("Digite seu CPF: ")
+        return cpf, None
+    elif usuario_tipo == '2':  # Médico
+        crm = input("Digite seu CRM: ")
+        return None, crm
+
 usuario_tipo = escolha_usuario()
-cpf = None
-crm = None
-if usuario_tipo == '1':
-    cpf = input("Digite seu CPF: ")
-elif usuario_tipo == '2':
-    crm = input("Digite seu CRM: ")
+cpf, crm = obter_dados_login(usuario_tipo)
 senha = input("Digite sua senha: ")
 
-login(cpf=cpf, crm=crm, senha=senha, user_type=usuario_tipo) 
+login(cpf=cpf, crm=crm, senha=senha, user_type=usuario_tipo)
