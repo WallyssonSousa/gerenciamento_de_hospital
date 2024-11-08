@@ -677,7 +677,7 @@ def obter_dados_login(usuario_tipo):
         return None, crm
 
 usuario_tipo = escolha_usuario()
-cpf, crm, admin = obter_dados_login(usuario_tipo)
+cpf, crm = obter_dados_login(usuario_tipo)
 senha = input("Digite sua senha: ")
 
 login(cpf=cpf, crm=crm, senha=senha, user_type=usuario_tipo)
