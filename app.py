@@ -669,7 +669,7 @@ def escolha_usuario():
     print("1. 👤 Paciente")
     print("2. 🧑‍⚕ Médico")
     print("3. 🚪 Sair")
-    print("4. 👑 Administrado")
+    print("4. 👑 Admin")
     print("=======================================================")
     opcao = input("Escolha uma opção: ")
     return opcao
