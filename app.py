@@ -648,7 +648,6 @@ def login(cpf=None, crm=None, senha=None, user_type=None):
             else:
                 print("Médico não encontrado!")
         elif user_type == '4':  
-            admin_username = "admin"
             admin_password = "admin123"
             if senha == admin_password:
                 print(f"Login bem-sucedido como Administrador!")
