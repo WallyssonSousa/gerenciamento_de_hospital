@@ -540,15 +540,6 @@ Base.metadata.create_all(db)
 
 # Inserção de Dados
 
-""" novo_medico = Medico.adicionar_medico(
-    session=session,
-    crm=21232, 
-    nome_medico='Pedro',
-    especialidade='Cirurgia geral',
-    senha='21232'
-)
-print(f"DR(A): {novo_medico.nome_medico} do CRM: {novo_medico.crm} adicionado com sucesso!")   """
-
 #===================================================== Login ======================================================================= #
 
 def login(cpf=None, crm=None, senha=None, user_type=None): 
@@ -656,6 +647,21 @@ def login(cpf=None, crm=None, senha=None, user_type=None):
                     opcao = menu_medico.menu_medico()
             else:
                 print("Médico não encontrado!")
+        elif user_type == '4':  
+            admin_username = "admin"
+            admin_password = "admin123"
+            if senha == admin_password:
+                print(f"Login bem-sucedido como Administrador!")
+                novo_medico = Medico.adicionar_medico(
+                    session=session,
+                    crm=input("Digite um crm: "), 
+                    nome_medico=input('Digite o nome do médico: '),
+                    especialidade=input("Digite a especialidade: "),
+                    senha=int(input("Digite sua senha: "))
+                )
+                print(f"DR(A): {novo_medico.nome_medico} do CRM: {novo_medico.crm} adicionado com sucesso!") 
+            else:
+                print("Senha do Administrador incorreta!")
     except Exception as e:
         print(f"Erro inesperado! Erro: {str(e)}")
 
@@ -664,6 +670,7 @@ def escolha_usuario():
     print("1. 👤 Paciente")
     print("2. 🧑‍⚕ Médico")
     print("3. 🚪 Sair")
+    print("4. 👑 Administrado")
     print("=======================================================")
     opcao = input("Escolha uma opção: ")
     return opcao
@@ -675,6 +682,8 @@ def obter_dados_login(usuario_tipo):
     elif usuario_tipo == '2':  # Médico
         crm = input("Digite seu CRM: ")
         return None, crm
+    elif usuario_tipo == '4':
+        return None, None
 
 usuario_tipo = escolha_usuario()
 cpf, crm = obter_dados_login(usuario_tipo)
